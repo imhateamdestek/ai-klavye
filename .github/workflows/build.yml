@@ -13,19 +13,11 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@v4
 
-      - name: Dosyalari listele
-        run: |
-          echo "=== DEPO ICERIGI ==="
-          find . -type f -not -path './.git/*' | sort
-
       - name: XcodeGen kur
         run: brew install xcodegen
 
       - name: Xcode projesi uret
         run: xcodegen generate
-
-      - name: Hedefleri listele
-        run: xcodebuild -list -project AIKeyboard.xcodeproj
 
       - name: Derle (imzasiz)
         run: |
@@ -42,34 +34,70 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             build
 
-      - name: Cikti kontrolu
-        run: |
-          echo "=== URUN KLASORU ==="
-          ls -la build/Build/Products/Release-iphoneos/
-          echo ""
-          echo "=== .APP ICERIGI ==="
-          find build/Build/Products/Release-iphoneos/AIKeyboard.app -type f -exec ls -la {} \;
-          echo ""
-          echo "=== BOYUT ==="
-          du -sh build/Build/Products/Release-iphoneos/AIKeyboard.app
-          echo ""
-          echo "=== ANA IKILI ==="
-          file build/Build/Products/Release-iphoneos/AIKeyboard.app/AIKeyboard || echo "ANA IKILI YOK!"
-          echo ""
-          echo "=== EKLENTI ==="
-          ls -la build/Build/Products/Release-iphoneos/AIKeyboard.app/PlugIns/ 2>/dev/null || echo "PLUGINS KLASORU YOK!"
-
       - name: IPA paketle
+        if: always()
         run: |
-          mkdir -p Payload
-          cp -R build/Build/Products/Release-iphoneos/AIKeyboard.app Payload/
-          zip -qry AIKeyboard.ipa Payload
-          echo "=== IPA BOYUTU ==="
-          ls -lh AIKeyboard.ipa
+          APP=build/Build/Products/Release-iphoneos/AIKeyboard.app
+          if [ -d "$APP" ]; then
+            mkdir -p Payload
+            cp -R "$APP" Payload/
+            zip -qry AIKeyboard.ipa Payload
+          fi
+
+      - name: Rapor
+        if: always()
+        run: |
+          APP=build/Build/Products/Release-iphoneos/AIKeyboard.app
+          EXT="$APP/PlugIns/Keyboard.appex"
+
+          {
+            echo "## Derleme raporu"
+            echo ""
+
+            if [ -f "$APP/AIKeyboard" ]; then
+              echo "- OK - Ana ikili: **$(stat -f%z "$APP/AIKeyboard") byte**"
+            else
+              echo "- HATA - **ANA IKILI YOK**"
+            fi
+
+            if [ -f "$EXT/Keyboard" ]; then
+              echo "- OK - Klavye eklentisi: **$(stat -f%z "$EXT/Keyboard") byte**"
+            else
+              echo "- HATA - **KLAVYE EKLENTISI YOK**"
+            fi
+
+            if [ -f "$EXT/Info.plist" ]; then
+              echo "- OK - Eklenti Info.plist var"
+            else
+              echo "- HATA - Eklenti Info.plist yok"
+            fi
+
+            if [ -d "$APP" ]; then
+              echo "- .app boyutu: **$(du -sh "$APP" | cut -f1)**"
+            fi
+            if [ -f AIKeyboard.ipa ]; then
+              echo "- IPA: **$(du -h AIKeyboard.ipa | cut -f1)**"
+            fi
+
+            echo ""
+            echo "### .app icerigi"
+            echo '```'
+            if [ -d "$APP" ]; then
+              find "$APP" -type f | sed "s|$APP/||"
+            else
+              echo ".app olusmadi"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          test -f "$APP/AIKeyboard" || exit 1
+          test -f "$EXT/Keyboard"   || exit 1
 
       - name: IPA yukle
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: AIKeyboard-ipa
           path: AIKeyboard.ipa
           retention-days: 30
+          if-no-files-found: warn
