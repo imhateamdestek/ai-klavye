@@ -1,0 +1,42 @@
+name: AIKeyboard
+options:
+  bundleIdPrefix: com.mosaic
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+targets:
+  AIKeyboard:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mosaic.aikeyboard
+        PRODUCT_NAME: AIKeyboard
+        INFOPLIST_FILE: App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - target: Keyboard
+        embed: true
+
+  Keyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Keyboard
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mosaic.aikeyboard.keyboard
+        PRODUCT_NAME: Keyboard
+        INFOPLIST_FILE: Keyboard/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
